@@ -338,7 +338,7 @@
             const a = document.createElement('a');
             a.href = url;
             a.download = 'noticia_agenda_sisal.webm';
-            a.textContent = '📥 Baixar Vídeo';
+            a.textContent = '📥 Baixar Vídeo \n\n .';
             document.body.appendChild(a);
 
             showStatus('Vídeo gerado com sucesso!', 'success');
@@ -362,20 +362,11 @@
         const totalFrames = duration * fps;
 
         // Renderizar todos os frames
-        for (let frame = 0; frame < totalFrames; frame++) {
-          await renderFrame(frame, fps, headline, snippet, newsImage);
-
-          // Atualizar progresso a cada segundo
-          if (frame % fps === 0) {
-            const progress = Math.round((frame / totalFrames) * 100);
-            showStatus(`Renderizando... ${progress}%`, 'loading');
-          }
-        }
-
-        // Parar gravação após um pequeno delay
-        setTimeout(() => {
-          recorder.stop();
-        }, 200);
+        renderVideoFrames(totalFrames, fps, headline, snippet, newsImage, null, () => {
+          setTimeout(() => {
+            recorder.stop();
+          }, 200);
+        });
 
       } catch (error) {
         showStatus(`Erro: ${error.message}`, 'error');
@@ -547,38 +538,34 @@
       }
     }
 
-    // Monitorar carregamento das imagens externas
-    bgImage.onload = () => {
-      bgImageLoaded = true;
-      showImageStatus('fundoPadrao carregado ✓', 'loaded');
-      checkAllImagesLoaded();
-    };
-
-    bgImage.onerror = () => {
-      showImageStatus('Erro: fundoPadrao.png não encontrado no diretório', 'error');
-    };
-
-    maskImage.onload = () => {
-      maskImageLoaded = true;
-      showImageStatus('mascara.png carregado ✓', 'loaded');
-      checkAllImagesLoaded();
-    };
-
-    maskImage.onerror = () => {
-      showImageStatus('Erro: mascara.png não encontrado no diretório', 'error');
-    };
-
-    function checkAllImagesLoaded() {
-      if (bgImageLoaded && maskImageLoaded) {
-        setTimeout(() => {
-          imageStatusDiv.style.display = 'none';
-        }, 2000);
-      }
-    }
-
     // Carregar as imagens externas
     bgImage.src = "fundoPadrao.jpg";
     maskImage.src = "mascara.png";
+
+
+
+
+    // Renderizar todos os frames usando requestAnimationFrame
+    function renderVideoFrames(totalFrames, fps, headline, snippet, newsImage, onFrame, onFinish) {
+      let frame = 0;
+      function nextFrame() {
+        if (frame < totalFrames) {
+          renderFrame(frame, fps, headline, snippet, newsImage).then(() => {
+            if (frame % fps === 0) {
+              const progress = Math.round((frame / totalFrames) * 100);
+              showStatus(`Renderizando... ${progress}%`, 'loading');
+            }
+            frame++;
+            setTimeout(nextFrame, 1000 / fps); // mantém o timing
+          });
+        } else {
+          onFinish();
+        }
+      }
+      nextFrame();
+    }
+
+
   </script>
 
 </body>
