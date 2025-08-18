@@ -6,9 +6,10 @@
   <title>Agenda Sisal - Gerador</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
 
     body {
-      font-family: 'Lato', sans-serif;
+      font-family: "Roboto", sans-serif;
       background: #f5f7fa;
       margin: 0;
       padding: 0;
@@ -393,7 +394,7 @@
 
           // ==== IMAGEM COM MÁSCARA E ANIMAÇÃO ZOOM-IN ====
           const imageX = contentX + 15;
-          const imageY = contentY + 220;
+          const imageY = contentY + 200;
           const imageW = 887;
           const imageH = 600;
 
@@ -409,16 +410,17 @@
           // ==== MANCHETE COM SLIDE LEFT TO RIGHT + FADE ====
           const headlineProgress = Math.min(1, frame / (fps * 0.5));
           const headlineOpacity = headlineProgress;
+          
           // Começa fora da tela à esquerda e vai para a posição final
           const headlineStartX = contentX - 400;
           const headlineEndX = contentX + 50;
           const headlineX = headlineStartX + (headlineEndX - headlineStartX) * headlineProgress;
-          const headlineY = contentY + 60;
+          const headlineY = 380;
 
-          ctx.font = "bold 56px Lato, Arial, sans-serif";
+          ctx.font = "bold 56px Roboto, Arial, sans-serif";
           ctx.fillStyle = `rgba(17,16,32,${headlineOpacity})`;
           ctx.textAlign = 'left';
-          wrapText(ctx, headline + "...", headlineX, headlineY, contentW - 100, 60, headlineOpacity);
+          wrapText(ctx, headline + "...", headlineX, headlineY, contentW - 50, 60, headlineOpacity);
 
 
           // ==== TRECHO COM SLIDE UP + FADE (DELAY) ====
@@ -430,8 +432,8 @@
           const snippetOpacity = snippetProgress;
           const snippetY = imageY + imageH + 70 + (40 * (1 - snippetProgress));
 
-          ctx.font = "48px Lato, Arial, sans-serif";
-          wrapText(ctx, snippet, contentX + 50, snippetY, contentW - 100, 72, snippetOpacity, true);
+          ctx.font = "48px Roboto, Arial, sans-serif";
+          wrapText(ctx, snippet, contentX + 40, snippetY, contentW - 100, 72, snippetOpacity, true);
 
           resolve();
         }, 1000 / fps);
