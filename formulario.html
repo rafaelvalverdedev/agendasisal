@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Vídeo de Notícia - Agenda Sisal</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap');
+
+    body {
+      font-family: 'Lato', sans-serif;
+      background: #f5f7fa;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    h2 {
+      margin-top: 30px;
+      color: #333;
+      font-size: 24px;
+      text-align: center;
+    }
+
+    form {
+      background: #fff;
+      padding: 25px 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      margin-top: 20px;
+      width: 100%;
+      max-width: 400px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    input[type="text"],
+    input[type="file"],
+    textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border 0.3s;
+      box-sizing: border-box;
+    }
+
+    input[type="text"]:focus,
+    input[type="file"]:focus,
+    textarea:focus {
+      border-color: #0077ff;
+      outline: none;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    .file-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .file-label {
+      font-size: 14px;
+      font-weight: bold;
+      color: #555;
+    }
+
+    button {
+      background: #0077ff;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background: #005fcc;
+    }
+
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    canvas {
+      border: 1px solid #ddd;
+      display: block;
+      margin: 25px auto;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    video {
+      margin-top: 20px;
+      width: 360px;
+      height: 640px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    a {
+      display: block;
+      margin-top: 15px;
+      text-align: center;
+      text-decoration: none;
+      font-weight: bold;
+      color: #0077ff;
+    }
+
+    a:hover {
+      color: #005fcc;
+    }
+
+    .preview {
+      margin-top: 15px;
+      text-align: center;
+    }
+
+    .preview img {
+      max-width: 200px;
+      max-height: 150px;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+    }
+
+    .status {
+      margin-top: 15px;
+      padding: 10px;
+      border-radius: 8px;
+      text-align: center;
+      font-weight: bold;
+      display: none;
+    }
+
+    .status.loading {
+      background: #e3f2fd;
+      color: #1976d2;
+    }
+
+    .status.error {
+      background: #ffebee;
+      color: #d32f2f;
+    }
+
+    .status.success {
+      background: #e8f5e8;
+      color: #2e7d32;
+    }
+
+    .image-status {
+      margin-top: 10px;
+      padding: 8px;
+      border-radius: 6px;
+      text-align: center;
+      font-size: 12px;
+      display: none;
+    }
+
+    .image-status.loading {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .image-status.loaded {
+      background: #d1edff;
+      color: #0c5460;
+    }
+
+    .image-status.error {
+      background: #f8d7da;
+      color: #721c24;
+    }
+  </style>
+</head>
+
+<body>
+  <h2>Gerador de Vídeo de Notícia</h2>
+  <form id="newsForm">
+    <input type="text" id="headline" placeholder="Digite a manchete" maxlength="70" required>
+
+    <div class="file-group">
+      <label class="file-label">Imagem da Notícia:</label>
+      <input type="file" id="imageFile" accept="image/*" required>
+    </div>
+
+    <textarea id="snippet" placeholder="Digite o trecho da notícia" required maxlength="250"></textarea>
+    <button type="submit" id="generateBtn">🎬 Gerar</button>
+  </form>
+
+  <div id="status" class="status"></div>
+  <div id="imageStatus" class="image-status"></div>
+  <canvas id="newsCanvas" width="1080" height="1920" style="display: none;"></canvas>
+  <video id="outputVideo" controls style="display: none;"></video>
+
+  <script>
+    const form = document.getElementById('newsForm');
+    const canvas = document.getElementById('newsCanvas');
+    const ctx = canvas.getContext('2d');
+    const outputVideo = document.getElementById('outputVideo');
+    const statusDiv = document.getElementById('status');
+    const imageStatusDiv = document.getElementById('imageStatus');
+    const generateBtn = document.getElementById('generateBtn');
+
+    // Imagens externas (como no código original)
+    const bgImage = new Image();
+    const maskImage = new Image();
+    
+    let bgImageLoaded = false;
+    let maskImageLoaded = false;
+
+    // Função para mostrar status
+    function showStatus(message, type = 'loading') {
+      statusDiv.innerHTML = message;
+      statusDiv.className = `status ${type}`;
+      statusDiv.style.display = 'block';
+    }
+
+    // Função para mostrar status das imagens
+    function showImageStatus(message, type = 'loading') {
+      imageStatusDiv.innerHTML = message;
+      imageStatusDiv.className = `image-status ${type}`;
+      imageStatusDiv.style.display = 'block';
+    }
+
+    // Carregar imagens externas
+    function loadExternalImages() {
+      showImageStatus('Carregando fundoPadrao...', 'loading');
+      
+      bgImage.onload = () => {
+        bgImageLoaded = true;
+        checkImagesLoaded();
+      };
+      
+      bgImage.onerror = () => {
+        showImageStatus('Erro: fundoPadrao não encontrado. Verifique se o arquivo está no mesmo diretório.', 'error');
+      };
+      
+      maskImage.onload = () => {
+        maskImageLoaded = true;
+        checkImagesLoaded();
+      };
+      
+      maskImage.onerror = () => {
+        showImageStatus('Erro: mascara.png não encontrado. Verifique se o arquivo está no mesmo diretório.', 'error');
+      };
+
+      bgImage.src = "fundoPadrao.jpg";
+      maskImage.src = "mascara.png";
+    }
+
+    function checkImagesLoaded() {
+      if (bgImageLoaded && maskImageLoaded) {
+        showImageStatus('Imagens carregadas com sucesso!', 'loaded');
+        setTimeout(() => {
+          imageStatusDiv.style.display = 'none';
+        }, 2000);
+      }
+    }
+
+    // Carregar imagens quando a página carregar
+    window.addEventListener('load', loadExternalImages);
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      // Verificar se as imagens externas foram carregadas
+      if (!bgImageLoaded || !maskImageLoaded) {
+        showStatus('Aguarde o carregamento das imagens de fundo e máscara...', 'error');
+        return;
+      }
+
+      const headline = document.getElementById('headline').value;
+      const snippet = document.getElementById('snippet').value;
+      const imageFile = document.getElementById('imageFile').files[0];
+
+      if (!imageFile) {
+        showStatus('Por favor, selecione uma imagem da notícia.', 'error');
+        return;
+      }
+
+      try {
+        generateBtn.disabled = true;
+        showStatus('Carregando imagem da notícia...', 'loading');
+        
+        // Carregar imagem da notícia
+        const newsImage = await loadImage(imageFile);
+        
+        showStatus('Iniciando geração do vídeo...', 'loading');
+        
+        // Mostrar canvas durante a geração
+        canvas.style.display = 'block';
+
+        // Verificar suporte para MediaRecorder
+        if (!MediaRecorder.isTypeSupported('video/webm')) {
+          throw new Error('Seu navegador não suporta gravação de vídeo WebM. Tente usar Chrome ou Firefox.');
+        }
+
+        // Iniciar gravação do vídeo
+        const stream = canvas.captureStream(30);
+        const recorder = new MediaRecorder(stream, { 
+          mimeType: 'video/webm',
+          videoBitsPerSecond: 5000000
+        });
+        const chunks = [];
+ 
+        recorder.ondataavailable = e => {
+          if (e.data.size > 0) {
+            chunks.push(e.data);
+          }
+        };
+
+        recorder.onstop = () => {
+          try {
+            const blob = new Blob(chunks, { type: 'video/webm' });
+            const url = URL.createObjectURL(blob);
+            outputVideo.src = url;
+            outputVideo.style.display = 'block';
+
+            // Remover link anterior se existir
+            const existingLink = document.querySelector('a[download]');
+            if (existingLink) {
+              existingLink.remove();
+            }
+
+            // Criar link para download
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'noticia_agenda_sisal.webm';
+            a.textContent = '📥 Baixar Vídeo';
+            document.body.appendChild(a);
+
+            showStatus('Vídeo gerado com sucesso!', 'success');
+            generateBtn.disabled = false;
+          } catch (error) {
+            showStatus('Erro ao processar o vídeo final: ' + error.message, 'error');
+            generateBtn.disabled = false;
+          }
+        };
+
+        recorder.onerror = (error) => {
+          showStatus('Erro na gravação: ' + error.message, 'error');
+          generateBtn.disabled = false;
+        };
+
+        recorder.start();
+        showStatus('Gravando vídeo... Isso pode levar alguns segundos.', 'loading');
+
+        const duration = 5; // segundos
+        const fps = 30;
+        const totalFrames = duration * fps;
+
+        // Renderizar todos os frames
+        for (let frame = 0; frame < totalFrames; frame++) {
+          await renderFrame(frame, fps, headline, snippet, newsImage);
+          
+          // Atualizar progresso a cada segundo
+          if (frame % fps === 0) {
+            const progress = Math.round((frame / totalFrames) * 100);
+            showStatus(`Renderizando... ${progress}%`, 'loading');
+          }
+        }
+
+        // Parar gravação após um pequeno delay
+        setTimeout(() => {
+          recorder.stop();
+        }, 200);
+
+      } catch (error) {
+        showStatus(`Erro: ${error.message}`, 'error');
+        generateBtn.disabled = false;
+        console.error('Erro na geração do vídeo:', error);
+      }
+    });
+
+    // Função para renderizar cada frame
+    async function renderFrame(frame, fps, headline, snippet, newsImage) {
+      return new Promise(resolve => {
+        setTimeout(() => {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+          // Desenhar fundo fixo Agenda Sisal
+          if (bgImageLoaded) {
+            ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
+          }
+
+          // Configurações da área de conteúdo
+          const contentX = 80;
+          const contentY = 350;
+          const contentW = 920;
+
+          // ==== IMAGEM COM MÁSCARA E ANIMAÇÃO ZOOM-IN ====
+          const imageX = contentX + 50;
+          const imageY = contentY + 220;
+          const imageW = 760;
+          const imageH = 600;
+
+          // Zoom-in progressivo (até 2 segundos)
+          const zoomProgress = Math.min(1, frame / (fps * 1));
+          const zoomScale = 0.5 + 0.5 * zoomProgress;
+
+          // Aplicar máscara fixa
+          if (maskImageLoaded) {
+            drawImageWithMask(ctx, newsImage, maskImage, imageX, imageY, imageW, imageH, zoomScale);
+          }
+
+          // ==== MANCHETE COM SLIDE DOWN + FADE ====
+          const headlineProgress = Math.min(1, frame / (fps * 0.5));
+          const headlineOpacity = headlineProgress;
+          const headlineY = contentY + 60 - (50 * (1 - headlineProgress));
+          
+          ctx.font = "bold 56px Lato, Arial, sans-serif";
+          ctx.fillStyle = `rgba(17,16,32,${headlineOpacity})`;
+          ctx.textAlign = 'left';
+          wrapText(ctx, headline + "...", contentX + 50, headlineY, contentW - 100, 60, headlineOpacity);
+
+          // ==== TRECHO COM SLIDE UP + FADE (DELAY) ====
+          const snippetDelay = fps * 1;
+          let snippetProgress = 0;
+          if (frame > snippetDelay) {
+            snippetProgress = Math.min(1, (frame - snippetDelay) / (fps * 1.5));
+          }
+          const snippetOpacity = snippetProgress;
+          const snippetY = imageY + imageH + 50 + (40 * (1 - snippetProgress));
+          
+          ctx.font = "48px Lato, Arial, sans-serif";
+          wrapText(ctx, snippet, contentX + 50, snippetY, contentW - 100, 72, snippetOpacity, true);
+
+          resolve();
+        }, 1000 / fps);
+      });
+    }
+
+    // Função para carregar imagem de forma assíncrona
+    function loadImage(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = function (event) {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = () => reject(new Error('Erro ao carregar a imagem selecionada'));
+          img.src = event.target.result;
+        };
+        reader.onerror = () => reject(new Error('Erro ao ler o arquivo de imagem'));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // Função para desenhar imagem com máscara (mantida como original)
+    function drawImageWithMask(ctx, image, mask, x, y, width, height, scale = 1) {
+      if (!image || !mask) return;
+
+      try {
+        // Criar canvas temporário para aplicar a máscara
+        const tempCanvas = document.createElement('canvas');
+        const tempCtx = tempCanvas.getContext('2d');
+
+        const scaledW = width * scale;
+        const scaledH = height * scale;
+        const offsetX = x + (width - scaledW) / 2;
+        const offsetY = y + (height - scaledH) / 2;
+
+        tempCanvas.width = scaledW;
+        tempCanvas.height = scaledH;
+
+        // Desenhar a imagem no canvas temporário
+        tempCtx.drawImage(image, 0, 0, scaledW, scaledH);
+
+        // Aplicar a máscara usando composite operation
+        tempCtx.globalCompositeOperation = 'destination-in';
+        tempCtx.drawImage(mask, 0, 0, scaledW, scaledH);
+
+        // Desenhar resultado no canvas principal
+        ctx.drawImage(tempCanvas, offsetX, offsetY);
+      } catch (error) {
+        console.error('Erro ao aplicar máscara:', error);
+        // Fallback: desenhar imagem sem máscara
+        const scaledW = width * scale;
+        const scaledH = height * scale;
+        const offsetX = x + (width - scaledW) / 2;
+        const offsetY = y + (height - scaledH) / 2;
+        ctx.drawImage(image, offsetX, offsetY, scaledW, scaledH);
+      }
+    }
+
+    function wrapText(context, text, x, y, maxWidth, lineHeight, opacity, justify = false) {
+      if (!text || opacity <= 0) return;
+
+      const words = text.split(' ');
+      let line = '';
+      let lines = [];
+
+      // Quebrar texto em linhas
+      for (let n = 0; n < words.length; n++) {
+        const testLine = line + words[n] + ' ';
+        const metrics = context.measureText(testLine);
+        if (metrics.width > maxWidth && n > 0) {
+          lines.push(line.trim());
+          line = words[n] + ' ';
+        } else {
+          line = testLine;
+        }
+      }
+      lines.push(line.trim());
+
+      // Desenhar as linhas
+      let currentY = y;
+      for (let i = 0; i < lines.length; i++) {
+        let lineText = lines[i];
+        
+        if (justify && i < lines.length - 1 && lineText.split(' ').length > 1) {
+          // Texto justificado para o snippet
+          const wordsInLine = lineText.split(' ');
+          const lineWidth = context.measureText(lineText).width;
+          const extraSpace = (maxWidth - lineWidth) / (wordsInLine.length - 1);
+          let currentX = x;
+          
+          context.fillStyle = `rgba(59,34,0,${opacity})`;
+          for (let w = 0; w < wordsInLine.length; w++) {
+            context.fillText(wordsInLine[w], currentX, currentY);
+            if (w < wordsInLine.length - 1) {
+              currentX += context.measureText(wordsInLine[w] + " ").width + extraSpace;
+            }
+          }
+        } else {
+          // Texto normal para a manchete
+          context.fillStyle = `rgba(59,34,0,${opacity})`;
+          context.fillText(lineText, x, currentY);
+        }
+        currentY += lineHeight;
+      }
+    }
+
+    // Monitorar carregamento das imagens externas
+    bgImage.onload = () => {
+      bgImageLoaded = true;
+      showImageStatus('fundoPadrao carregado ✓', 'loaded');
+      checkAllImagesLoaded();
+    };
+
+    bgImage.onerror = () => {
+      showImageStatus('Erro: fundoPadrao.png não encontrado no diretório', 'error');
+    };
+
+    maskImage.onload = () => {
+      maskImageLoaded = true;
+      showImageStatus('mascara.png carregado ✓', 'loaded');
+      checkAllImagesLoaded();
+    };
+
+    maskImage.onerror = () => {
+      showImageStatus('Erro: mascara.png não encontrado no diretório', 'error');
+    };
+
+    function checkAllImagesLoaded() {
+      if (bgImageLoaded && maskImageLoaded) {
+        setTimeout(() => {
+          imageStatusDiv.style.display = 'none';
+        }, 2000);
+      }
+    }
+
+    // Carregar as imagens externas
+    bgImage.src = "fundoPadrao.jpg";
+    maskImage.src = "mascara.png";
+  </script>
+
+</body>
+
+</html>
