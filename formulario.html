@@ -311,7 +311,7 @@
         const stream = canvas.captureStream(30);
         const recorder = new MediaRecorder(stream, {
           mimeType: 'video/webm',
-          videoBitsPerSecond: 5000000
+          videoBitsPerSecond: 10000000 // 10 Mbps
         });
         const chunks = [];
 
@@ -358,7 +358,7 @@
         showStatus('Gravando vídeo... Isso pode levar alguns segundos.', 'loading');
 
         const duration = 5; // segundos
-        const fps = 30;
+        const fps = 60;
         const totalFrames = duration * fps;
 
         // Renderizar todos os frames
