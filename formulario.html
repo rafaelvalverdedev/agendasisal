@@ -189,14 +189,14 @@
 <body>
   <h2>Gerador</h2>
   <form id="newsForm">
-    <input type="text" id="headline" placeholder="Digite a manchete" maxlength="70" required>
+    <input type="text" id="headline" placeholder="Digite a manchete" maxlength="100" required>
 
     <div class="file-group">
       <label class="file-label">Imagem da Notícia:</label>
       <input type="file" id="imageFile" accept="image/*" required>
     </div>
 
-    <textarea id="snippet" placeholder="Digite o trecho da notícia" required maxlength="250"></textarea>
+    <textarea id="snippet" placeholder="Digite o trecho da notícia" required maxlength="450"></textarea>
     <button type="submit" id="generateBtn">🎬 Gerar</button>
   </form>
 
@@ -309,7 +309,7 @@
         }
 
         // Iniciar gravação do vídeo
-        const stream = canvas.captureStream(30);
+        const stream = canvas.captureStream(60);
         const recorder = new MediaRecorder(stream, {
           mimeType: 'video/webm',
           videoBitsPerSecond: 10000000 // 10 Mbps
@@ -339,7 +339,8 @@
             const a = document.createElement('a');
             a.href = url;
             a.download = 'noticia_agenda_sisal.webm';
-            a.textContent = '📥 Baixar Vídeo \n\n .';
+            a.textContent = '📥 Baixar Vídeo';
+            a.style.marginTop = '15px';
             document.body.appendChild(a);
 
             showStatus('Vídeo gerado com sucesso!', 'success');
@@ -410,16 +411,18 @@
           // ==== MANCHETE COM SLIDE LEFT TO RIGHT + FADE ====
           const headlineProgress = Math.min(1, frame / (fps * 0.5));
           const headlineOpacity = headlineProgress;
-          
+
           // Começa fora da tela à esquerda e vai para a posição final
           const headlineStartX = contentX - 400;
           const headlineEndX = contentX + 50;
           const headlineX = headlineStartX + (headlineEndX - headlineStartX) * headlineProgress;
           const headlineY = 380;
 
-          ctx.font = "bold 56px Roboto, Arial, sans-serif";
+          ctx.font = "bold 48px Roboto, Arial, sans-serif";
           ctx.fillStyle = `rgba(17,16,32,${headlineOpacity})`;
           ctx.textAlign = 'left';
+          ctx.shadowColor = 'rgba(0,0,0,0.3)';
+          ctx.shadowBlur = 4;
           wrapText(ctx, headline + "...", headlineX, headlineY, contentW - 50, 60, headlineOpacity);
 
 
@@ -432,9 +435,12 @@
           const snippetOpacity = snippetProgress;
           const snippetY = imageY + imageH + 70 + (40 * (1 - snippetProgress));
 
-          ctx.font = "48px Roboto, Arial, sans-serif";
-          wrapText(ctx, snippet, contentX + 40, snippetY, contentW - 100, 72, snippetOpacity, true);
-
+          ctx.font = "32px Roboto, Arial, sans-serif";
+          //ctx.textAlign = 'justify';
+          ctx.shadowColor = 'rgba(0,0,0,0.8)';
+          ctx.shadowBlur = 3;
+          wrapText(ctx, snippet, contentX + 40, snippetY, contentW - 100, 50, snippetOpacity, true);
+          
           resolve();
         }, 1000 / fps);
       });
@@ -522,6 +528,7 @@
           const wordsInLine = lineText.split(' ');
           const lineWidth = context.measureText(lineText).width;
           const extraSpace = (maxWidth - lineWidth) / (wordsInLine.length - 1);
+
           let currentX = x;
 
           context.fillStyle = `rgba(59,34,0,${opacity})`;
@@ -540,31 +547,33 @@
       }
     }
 
-    // Carregar as imagens externas
-    bgImage.src = "fundoPadrao.jpg";
-    maskImage.src = "mascara.png";
-
-
-
-
     // Renderizar todos os frames usando requestAnimationFrame
     function renderVideoFrames(totalFrames, fps, headline, snippet, newsImage, onFrame, onFinish) {
       let frame = 0;
-      function nextFrame() {
-        if (frame < totalFrames) {
+      const frameDuration = 1000 / fps;
+      let lastTimestamp = performance.now();
+
+      function animate(timestamp) {
+        const elapsed = timestamp - lastTimestamp;
+        if (elapsed >= frameDuration) {
           renderFrame(frame, fps, headline, snippet, newsImage).then(() => {
             if (frame % fps === 0) {
               const progress = Math.round((frame / totalFrames) * 100);
               showStatus(`Renderizando... ${progress}%`, 'loading');
             }
             frame++;
-            setTimeout(nextFrame, 1000 / fps); // mantém o timing
+            lastTimestamp = timestamp;
           });
+        }
+
+        if (frame < totalFrames) {
+          requestAnimationFrame(animate);
         } else {
           onFinish();
         }
       }
-      nextFrame();
+
+      requestAnimationFrame(animate);
     }
 
 
