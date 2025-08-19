@@ -215,6 +215,7 @@
     <img id="previewImage" src="" alt="Pré-visualização da imagem" style="display: none;">
     <canvas id="newsCanvas" width="1080" height="1920" style="display: inline;"></canvas>
     <video id="outputVideo" controls style="display: inline;" autoplay></video>
+    <video id="extraVideo" src="video.webm" style="display:none;" muted playsinline loop></video>
   </div>
 
   <script>
@@ -225,6 +226,32 @@
     const statusDiv = document.getElementById('status');
     const imageStatusDiv = document.getElementById('imageStatus');
     const generateBtn = document.getElementById('generateBtn');
+
+
+
+    // =================================
+    // adicao de imagens
+    // ==================================
+    const logoImageSenninha = new Image();
+    let logoLoaded = false;
+
+    logoImageSenninha.onload = () => { logoLoaded = true; };
+    logoImageSenninha.onerror = () => { console.error("Erro ao carregar logo.png"); };
+
+    // Caminho local (mesma pasta) ou URL externa
+    logoImageSenninha.src = "senninha.png";
+
+
+    const extraVideo = document.getElementById("extraVideo");
+
+    // garantir que vai começar a tocar
+    extraVideo.addEventListener("canplay", () => {
+      extraVideo.play();
+    });
+    // =================================
+    // adicao de imagens
+    // ==================================
+
 
     // Imagens externas (como no código original)
     const bgImage = new Image();
@@ -398,6 +425,19 @@
           // Desenhar fundo fixo Agenda Sisal
           if (bgImageLoaded) {
             ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
+          }
+
+          // Desenhar logo Senninha no canto inferior direito
+          // ================================
+          if (logoLoaded) {
+            ctx.drawImage(logoImageSenninha, canvas.width - 150, canvas.height - 150, 200, 200);
+          }
+          
+          // ================================
+          // Desenhar vídeo extra no canto inferior direito
+          if (!extraVideo.paused && !extraVideo.ended) {
+            // exemplo: canto inferior direito com 300x200 px
+            ctx.drawImage(extraVideo, canvas.width - 520, canvas.height - 220, 300, 200);
           }
 
           // Configurações da área de conteúdo
