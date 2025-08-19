@@ -183,6 +183,14 @@
       background: #f8d7da;
       color: #721c24;
     }
+
+    .preview {
+      display: flex;
+      flex-direction: row;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 24px;
+    }
   </style>
 </head>
 
@@ -202,8 +210,12 @@
 
   <div id="status" class="status"></div>
   <div id="imageStatus" class="image-status"></div>
-  <canvas id="newsCanvas" width="1080" height="1920" style="display: none;"></canvas>
-  <video id="outputVideo" controls style="display: none;"></video>
+
+  <div class="preview">
+    <img id="previewImage" src="" alt="Pré-visualização da imagem" style="display: none;">
+    <canvas id="newsCanvas" width="1080" height="1920" style="display: inline;"></canvas>
+    <video id="outputVideo" controls style="display: inline;" autoplay></video>
+  </div>
 
   <script>
     const form = document.getElementById('newsForm');
@@ -440,7 +452,7 @@
           ctx.shadowColor = 'rgba(0,0,0,0.8)';
           ctx.shadowBlur = 3;
           wrapText(ctx, snippet, contentX + 40, snippetY, contentW - 100, 50, snippetOpacity, true);
-          
+
           resolve();
         }, 1000 / fps);
       });
